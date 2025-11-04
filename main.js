@@ -22,15 +22,29 @@ navLinks.forEach(link => {
 });
 
 window.addEventListener('scroll', () => {
-  let scrollPos = window.scrollY + 100;
+  let scrollPos = window.scrollY + 150;
 
+  // Get current section in view
+  let current = '';
   sections.forEach(section => {
-    if (scrollPos >= section.offsetTop && scrollPos < section.offsetTop + section.offsetHeight) {
-      removeActive();
-      const activeLink = document.querySelector(`.ul-list li a[href="#${section.id}"]`);
-      if (activeLink) activeLink.parentElement.classList.add('active');
+    const sectionTop = section.offsetTop;
+    const sectionHeight = section.offsetHeight;
+    if (scrollPos >= sectionTop - 200 && scrollPos < sectionTop + sectionHeight) {
+      current = section.getAttribute('id');
     }
   });
+
+  // Check if we're at the bottom of the page
+  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
+    current = 'contact';
+  }
+
+  // Update active nav link
+  if (current) {
+    removeActive();
+    const activeLink = document.querySelector(`.ul-list li a[href="#${current}"]`);
+    if (activeLink) activeLink.parentElement.classList.add('active');
+  }
 
   if(window.scrollY > 500){
     backToTop.style.display = "flex";
@@ -49,7 +63,7 @@ window.addEventListener('scroll', () => {
   });
 });
 
-const revealElements = document.querySelectorAll('.home-container, .about-container, .projects-container, .services-container, .contact-content');
+const revealElements = document.querySelectorAll('.home-container, .about-container, .projects-container, .services-container, .certifications-container, .contact-content');
 revealElements.forEach(el => el.classList.add('reveal'));
 
 const backToTop = document.createElement('div');
@@ -61,7 +75,7 @@ backToTop.style.cssText = `
   position: fixed;
   bottom: 40px;
   right: 40px;
-  background: #474af0;
+  background: #000;
   color: white;
   width: 50px;
   height: 50px;
@@ -88,7 +102,7 @@ cards.forEach(card => {
 });
 
 const typingElement = document.querySelector('.info-home h3'); 
-const words = ["Frontend Developer", "UI/UX Designer", "Web Enthusiast", "React Developer"];
+const words = ["Cyber security", "Front-end Developer", "Vibe Coder"];
 let wordIndex = 0;
 let charIndex = 0;
 let isDeleting = false;
@@ -157,4 +171,158 @@ document.addEventListener('DOMContentLoaded', () => {
       homeNavLink.parentElement.classList.add('active');
     }
   }, 1000);
+});
+
+// Certificate Modal Functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const certModal = document.getElementById('certModal');
+  const certModalImage = document.querySelector('.cert-modal-image');
+  const certModalClose = document.querySelector('.cert-modal-close');
+  const certViewButtons = document.querySelectorAll('.cert-view-btn');
+  
+  // Open modal when view button is clicked
+  certViewButtons.forEach((button, index) => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const certCard = button.closest('.cert-card');
+      const certImage = certCard.querySelector('.cert-image-wrapper img');
+      const imageSrc = certImage.getAttribute('src');
+      const imageAlt = certImage.getAttribute('alt');
+      
+      certModalImage.setAttribute('src', imageSrc);
+      certModalImage.setAttribute('alt', imageAlt);
+      certModal.classList.add('active');
+      certModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    });
+  });
+  
+  // Close modal when close button is clicked
+  certModalClose.addEventListener('click', () => {
+    certModal.classList.remove('active');
+    certModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = ''; // Restore scrolling
+  });
+  
+  // Close modal when clicking outside the image
+  certModal.addEventListener('click', (e) => {
+    if (e.target === certModal) {
+      certModal.classList.remove('active');
+      certModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+  });
+  
+  // Close modal with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && certModal.classList.contains('active')) {
+      certModal.classList.remove('active');
+      certModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+  });
+  
+  // Add certifications container to reveal elements
+  const certContainer = document.querySelector('.certifications-container');
+  if (certContainer) {
+    certContainer.classList.add('reveal');
+  }
+});
+
+// Flip card tap/click functionality for mobile
+document.addEventListener('DOMContentLoaded', () => {
+  const flipCards = document.querySelectorAll('.flip-card');
+  
+  flipCards.forEach(card => {
+    card.addEventListener('click', function(e) {
+      // Only apply on touch devices or small screens
+      if (window.innerWidth <= 700 || 'ontouchstart' in window) {
+        // Toggle active class
+        this.classList.toggle('active');
+        
+        // Close other flip cards
+        flipCards.forEach(otherCard => {
+          if (otherCard !== this) {
+            otherCard.classList.remove('active');
+          }
+        });
+      }
+    });
+  });
+  
+  // Close flip cards when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.flip-card')) {
+      flipCards.forEach(card => {
+        card.classList.remove('active');
+      });
+    }
+  });
+});
+
+// EmailJS Configuration
+(function() {
+  emailjs.init("YzxpNrPgXuJnvhrDu"); // EmailJS Public Key
+})();
+
+// Contact Form Handler
+document.addEventListener('DOMContentLoaded', function() {
+  const contactForm = document.getElementById('contact-form');
+  
+  if (contactForm) {
+    contactForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      
+      const submitButton = contactForm.querySelector('.btn-send');
+      const originalButtonText = submitButton.textContent;
+      
+      // Show loading state
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+      submitButton.style.opacity = '0.7';
+      
+      // Send email using EmailJS
+      emailjs.sendForm(
+        'service_06x8xgy',    // Your Service ID
+        'template_jv8c1nj',   // Replace with your Template ID from EmailJS
+        contactForm
+      )
+      .then(function(response) {
+        console.log('Email sent successfully!', response.status, response.text);
+        
+        // Success feedback
+        submitButton.textContent = '✓ Message Sent!';
+        submitButton.style.backgroundColor = '#10b981';
+        submitButton.style.color = '#fff';
+        
+        // Reset form
+        contactForm.reset();
+        
+        // Reset button after 3 seconds
+        setTimeout(function() {
+          submitButton.textContent = originalButtonText;
+          submitButton.style.backgroundColor = '';
+          submitButton.style.color = '';
+          submitButton.style.opacity = '1';
+          submitButton.disabled = false;
+        }, 3000);
+      }, function(error) {
+        console.error('Email send failed:', error);
+        
+        // Error feedback
+        submitButton.textContent = '✗ Failed to Send';
+        submitButton.style.backgroundColor = '#ef4444';
+        submitButton.style.color = '#fff';
+        
+        // Reset button after 3 seconds
+        setTimeout(function() {
+          submitButton.textContent = originalButtonText;
+          submitButton.style.backgroundColor = '';
+          submitButton.style.color = '';
+          submitButton.style.opacity = '1';
+          submitButton.disabled = false;
+        }, 3000);
+      });
+    });
+  }
 });
