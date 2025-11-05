@@ -326,3 +326,353 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// Terminal Emulator Functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const terminalBody = document.getElementById('terminalBody');
+  const terminalInput = document.getElementById('terminalInput');
+  
+  if (!terminalInput || !terminalBody) return;
+
+  let commandHistory = [];
+  let historyIndex = -1;
+  let currentPath = '~';
+
+  // AI Chatbot state
+  let chatbotMode = false;
+  let chatHistory = [];
+
+  // File system structure
+  const fileSystem = {
+    '~': {
+      type: 'directory',
+      contents: {
+        'about.txt': { type: 'file', content: 'Cybersecurity Student & Developer\nPassionate about security, AI, and gaming.\nLocation: Ha Noi, Viet Nam' },
+        'skills.txt': { type: 'file', content: 'Languages: HTML, CSS, JavaScript, Python, Java, C\nTools: Wireshark, nmap, Metasploit\nSkills: Ethical Hacking, Digital Forensics, Network Security' },
+        'contact.txt': { type: 'file', content: 'Email: anbt.personal@gmail.com\nLinkedIn: linkedin.com/in/ann-bt/\nGitHub: github.com/Ann-BT' }
+      } 
+    }
+  };
+
+  const commands = {
+    help: {
+      description: 'Show all available commands',
+      execute: () => {
+        return `<span class="terminal-info">Available Commands:</span>
+  <span class="terminal-success">help</span>     - Show this help message
+  <span class="terminal-success">ls</span>       - List files in current directory
+  <span class="terminal-success">cat</span>      - Display file contents
+  <span class="terminal-success">clear</span>    - Clear terminal screen
+  <span class="terminal-success">dark</span>     - Enable dark mode
+  <span class="terminal-success">light</span>    - Enable light mode
+  <span class="terminal-success">home</span>     - Navigate to home section
+  <span class="terminal-success">about</span>    - Navigate to about section
+  <span class="terminal-success">project</span>  - Navigate to projects section
+  <span class="terminal-success">cert</span>     - Navigate to certifications
+  <span class="terminal-success">contact</span>  - Navigate to contact section
+  <span class="terminal-success">chatbot</span>  - Chat with Merlin AI
+  <span class="terminal-success">exit</span>     - Exit chatbot mode`;
+      }
+    },
+    ls: {
+      description: 'List directory contents',
+      execute: () => {
+        const dir = fileSystem[currentPath];
+        if (dir && dir.type === 'directory') {
+          const contents = Object.keys(dir.contents).map(item => {
+            const itemData = dir.contents[item];
+            const color = itemData.type === 'directory' ? 'terminal-info' : 'terminal-text';
+            return `<span class="${color}">${item}</span>`;
+          }).join('  ');
+          return contents || '<span class="terminal-text">Empty directory</span>';
+        }
+        return '<span class="terminal-error">Not a directory</span>';
+      }
+    },
+    cat: {
+      description: 'Display file contents',
+      execute: (args) => {
+        if (!args[0]) return '<span class="terminal-error">Usage: cat [filename]</span>';
+        const dir = fileSystem[currentPath];
+        const file = dir?.contents?.[args[0]];
+        if (file && file.type === 'file') {
+          return `<span class="terminal-text">${file.content.replace(/\n/g, '<br>')}</span>`;
+        }
+        return `<span class="terminal-error">cat: ${args[0]}: No such file</span>`;
+      }
+    },
+    clear: {
+      description: 'Clear terminal',
+      execute: () => {
+        const inputLine = terminalBody.querySelector('.terminal-input-line');
+        terminalBody.innerHTML = '';
+        if (inputLine) {
+          terminalBody.appendChild(inputLine);
+        }
+        return null;
+      }
+    },
+    home: {
+      description: 'Navigate to home section',
+      execute: () => {
+        scrollToSection('home');
+        return '<span class="terminal-success">Navigating to Home section...</span>';
+      }
+    },
+    about: {
+      description: 'Navigate to about section',
+      execute: () => {
+        scrollToSection('about');
+        return '<span class="terminal-success">Navigating to About section...</span>';
+      }
+    },
+    project: {
+      description: 'Navigate to projects section',
+      execute: () => {
+        scrollToSection('project');
+        return '<span class="terminal-success">Navigating to Projects section...</span>';
+      }
+    },
+    cert: {
+      description: 'Navigate to certifications section',
+      execute: () => {
+        scrollToSection('certifications');
+        return '<span class="terminal-success">Navigating to Certifications section...</span>';
+      }
+    },
+    contact: {
+      description: 'Navigate to contact section',
+      execute: () => {
+        scrollToSection('contact');
+        return '<span class="terminal-success">Navigating to Contact section...</span>';
+      }
+    },
+    dark: {
+      description: 'Enable dark mode',
+      execute: () => {
+        document.body.classList.add('dark-mode');
+        return `<span class="terminal-success">Dark mode enabled</span>`;
+      }
+    },
+    light: {
+      description: 'Enable light mode',
+      execute: () => {
+        document.body.classList.remove('dark-mode');
+        return `<span class="terminal-success">Light mode enabled</span>`;
+      }
+    },
+    chatbot: {
+      description: 'Start AI assistant',
+      execute: () => {
+        chatbotMode = true;
+        return `<span class="terminal-success">🧙‍♂️ Merlin AI Awakened!</span>
+<span class="terminal-info">Hello! I'm Merlin, the All knowing. What do you want to know about Ann? </span>
+
+<span class="terminal-text">Type 'exit' to return to terminal mode.</span>`;
+      }
+    },
+    exit: {
+      description: 'Exit chatbot mode',
+      execute: () => {
+        if (chatbotMode) {
+          chatbotMode = false;
+          return '<span class="terminal-success">Exited AI Assistant mode</span>';
+        }
+        return '<span class="terminal-text">Use this command to exit chatbot mode</span>';
+      }
+    }
+  };
+
+  function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      window.scrollTo({
+        top: section.offsetTop - 80,
+        behavior: 'smooth'
+      });
+    }
+  }
+
+  // Hugging Face API Configuration
+  const HF_API_TOKEN = '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';
+  const HF_MODEL = 'openai/gpt-oss-safeguard-20b';
+  
+  async function simulateAIResponse(userInput) {
+    const input = userInput.toLowerCase();
+    
+    // Portfolio context for Trường An
+    const portfolioContext = `You are Merlin, a wise and helpful AI assistant for Trường An's portfolio website. 
+
+Here's information about Trường An:
+- Name: Trường An (also known as Ann-BT)
+- Education: Third-year Computer Science student at USTH (University of Science and Technology of Hanoi), focusing on Cybersecurity
+- Skills: Cybersecurity (ethical hacking, penetration testing, digital forensics), programming (Python, JavaScript, Java, C, Assembly), web development (HTML, CSS)
+- Tools: Wireshark, nmap, Metasploit
+- Languages: Vietnamese, English, French, Chinese
+- Projects: Portfolio Website, Word Chain Game (network programming)
+- Certifications: Coursera certifications, Frontend Development, IT certifications
+- Contact: anbt.personal@gmail.com
+- GitHub: https://github.com/Ann-BT
+- LinkedIn: https://www.linkedin.com/in/ann-bt/
+- Location: Hanoi, Vietnam
+- Interests: AI, gaming (League of Legends, Elden Ring, Cyberpunk 2077), art, music
+- Goals: Seeking opportunities in cybersecurity and AI fields
+
+You can answer BOTH questions about Trường An AND any general knowledge questions about anything in the world.
+When answering about Trường An, use the information above. For other questions, provide helpful, accurate information.
+Keep your responses concise and friendly. You are knowledgeable like the wizard Merlin!`;
+
+    // Create the full prompt
+    const fullPrompt = `${portfolioContext}\n\nUser: ${userInput}\n\nMerlin:`;
+
+    try {
+      // Use Hugging Face Inference API for DeepSeek-R1
+      const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${HF_API_TOKEN}`
+        },
+        body: JSON.stringify({
+          inputs: fullPrompt,
+          parameters: {
+            max_new_tokens: 500,
+            temperature: 0.7,
+            top_p: 0.9,
+            return_full_text: false
+          }
+        })
+      });
+
+      const data = await response.json();
+      
+      // Handle different response formats
+      if (Array.isArray(data) && data[0]?.generated_text) {
+        // Extract just the response part, removing the prompt
+        let responseText = data[0].generated_text;
+        
+        // Clean up the response if needed
+        responseText = responseText.trim();
+        
+        return responseText;
+      } else if (data.error) {
+        console.error('Hugging Face API error:', data.error);
+        
+        // Check if model is loading
+        if (data.error.includes('loading')) {
+          return '🔮 The AI model is currently loading. This may take 20-30 seconds on first use. Please try again in a moment!';
+        }
+        
+        return `I apologize, but I encountered an error: ${data.error}. Please try again.`;
+      } else if (data[0]?.error) {
+        console.error('Hugging Face API error:', data[0].error);
+        return `I apologize, but I encountered an error: ${data[0].error}. Please try again.`;
+      }
+    } catch (error) {
+      console.error('Hugging Face API error:', error);
+      return 'I apologize, but I\'m having trouble connecting to the AI service right now. Please try again in a moment.';
+    }
+
+    // Fallback (shouldn't reach here)
+    return 'I\'m Merlin, I can answer questions about Trường An\'s portfolio or any general knowledge questions. Please try asking your question again!';
+  }
+
+  function addOutput(text, addPrompt = true) {
+    if (text === null) return; // For clear command
+    
+    const line = document.createElement('div');
+    line.className = 'terminal-line';
+    
+    if (addPrompt) {
+      const prompt = document.createElement('span');
+      prompt.className = 'terminal-prompt';
+      prompt.textContent = chatbotMode ? '🧙‍♂️ Merlin:' : 'Merlin@Portfolio:~$';
+      line.appendChild(prompt);
+    }
+    
+    const output = document.createElement('span');
+    output.className = 'terminal-text';
+    output.innerHTML = text;
+    line.appendChild(output);
+    
+    terminalBody.insertBefore(line, terminalBody.querySelector('.terminal-input-line'));
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+  }
+
+  async function processCommand(input) {
+    const trimmedInput = input.trim();
+    if (!trimmedInput) return;
+
+    // Add command to history
+    commandHistory.push(trimmedInput);
+    historyIndex = commandHistory.length;
+
+    // Display the command
+    addOutput(trimmedInput, true);
+
+    // Handle chatbot mode
+    if (chatbotMode && trimmedInput.toLowerCase() !== 'exit') {
+      // Show thinking indicator
+      addOutput('<span class="terminal-info">🔮 Merlin is thinking...</span>', false);
+      
+      const response = await simulateAIResponse(trimmedInput);
+      
+      // Remove thinking indicator
+      const lines = terminalBody.querySelectorAll('.terminal-line');
+      if (lines.length > 0) {
+        lines[lines.length - 1].remove();
+      }
+      
+      addOutput(response, false);
+      return;
+    }
+
+    // Parse command and arguments
+    const parts = trimmedInput.split(' ');
+    const command = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    // Execute command
+    if (commands[command]) {
+      const output = commands[command].execute(args);
+      if (output !== null) {
+        addOutput(output, false);
+      }
+    } else {
+      addOutput(`<span class="terminal-error">Command not found: ${command}. Type 'help' for available commands.</span>`, false);
+    }
+  }
+
+  // Handle Enter key
+  terminalInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const input = terminalInput.value;
+      processCommand(input);
+      terminalInput.value = '';
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        historyIndex--;
+        terminalInput.value = commandHistory[historyIndex];
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        terminalInput.value = commandHistory[historyIndex];
+      } else {
+        historyIndex = commandHistory.length;
+        terminalInput.value = '';
+      }
+    }
+  });
+
+  // Keep terminal input focused when clicking on terminal body
+  terminalBody.addEventListener('click', () => {
+    terminalInput.focus();
+  });
+
+  // Auto-focus on terminal input
+  terminalInput.focus();
+});
